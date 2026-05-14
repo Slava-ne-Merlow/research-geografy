@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Самый популярный жанр по странам</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a1a; padding: 28px; }
+h1 { font-size: 22px; font-weight: 700; letter-spacing: 2px; margin-bottom: 6px; }
+.sub { font-size: 14px; color: #555; margin-bottom: 18px; }
+#map-wrap { position: relative; width: 100%; }
+svg { width: 100%; height: auto; display: block; }
+#tooltip {
+  display: none; position: absolute;
+  background: #fff; border: 1px solid #ccc;
+  border-radius: 10px; padding: 10px 14px;
+  font-size: 13px; pointer-events: none; z-index: 20;
+}
+#tt-country { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
+#tt-genre { font-size: 13px; margin-bottom: 4px; }
+#tt-note { font-size: 11px; color: #555; line-height: 1.5; }
+.legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.leg { display: flex; align-items: center; gap: 7px; font-size: 13px; color: #333;
+  background: #ebebeb; border-radius: 7px; padding: 6px 12px; cursor: pointer; }
+.leg:hover { background: #ddd; }
+.leg-sq { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+.leg.inactive { opacity: 0.35; }
+.source { margin-top: 14px; font-size: 11px; color: #888; }
+</style>
+</head>
+<body>
+<h1>САМЫЙ ПОПУЛЯРНЫЙ ЖАНР ПО СТРАНАМ</h1>
+<p class="sub">По данным Spotify Charts и региональных исследований · нажми на страну или жанр в легенде</p>
+
+<div id="map-wrap">
+  <div id="tooltip">
+    <div id="tt-country"></div>
+    <div id="tt-genre"></div>
+    <div id="tt-note"></div>
+  </div>
+  <svg id="map" viewBox="0 0 960 500"></svg>
+</div>
+
+<div class="legend" id="legend"></div>
+<p class="source">Источники: Spotify Charts, Billboard Global, региональные исследования · данные приблизительные, отражают общую тенденцию</p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+<script>
+const GENRES = {
+  pop:     { label: "Поп",          color: "#E8304A" },
+  hiphop:  { label: "Хип-хоп / R&B",color: "#C67BCC" },
+  rock:    { label: "Рок / Метал",  color: "#A0A0B8" },
+  latin:   { label: "Латино / Реггетон", color: "#F5C842" },
+  electronic:{ label: "Электронная / Техно", color: "#4AC8E8" },
+  kpop:    { label: "K-pop",        color: "#FF85A1" },
+  afro:    { label: "Афробит / Амапиано", color: "#7BC67E" },
+  regional:{ label: "Национальная/Региональная", color: "#F5A623" },
+};
+
+const countryData = {
+  "840": { name:"США",             genre:"hiphop", note:"Хип-хоп и R&B — доминирующий жанр с 2017 года" },
+  "124": { name:"Канада",          genre:"hiphop", note:"Drake и канадский хип-хоп задают тон" },
+  "826": { name:"Великобритания",  genre:"pop",    note:"Поп с сильной роковой традицией" },
+  "276": { name:"Германия",        genre:"pop",    note:"Немецкая поп-сцена + сильное техно-подполье" },
+  "250": { name:"Франция",         genre:"hiphop", note:"Французский рэп — один из крупнейших в мире" },
+  "724": { name:"Испания",         genre:"latin",  note:"Реггетон и латино доминируют" },
+  "380": { name:"Италия",          genre:"pop",    note:"Итальянский поп + инди" },
+  "752": { name:"Швеция",          genre:"pop",    note:"Родина ABBA и глобальной поп-машины" },
+  "246": { name:"Финляндия",       genre:"rock",   note:"Рок и метал — культурная традиция" },
+  "578": { name:"Норвегия",        genre:"rock",   note:"Сильная рок и блэк-метал сцена" },
+  "616": { name:"Польша",          genre:"pop",    note:"Польский поп и электронная музыка" },
+  "643": { name:"Россия",          genre:"pop",    note:"Российский поп — доминирующий жанр" },
+  "076": { name:"Бразилия",        genre:"latin",  note:"Funk carioca, форро, реггетон — латинские жанры" },
+  "032": { name:"Аргентина",       genre:"latin",  note:"Реггетон и аргентинский рэп" },
+  "152": { name:"Чили",            genre:"latin",  note:"Реггетон + чилийский поп" },
+  "484": { name:"Мексика",         genre:"regional",note:"Corridos, banda — сильнейшая региональная традиция" },
+  "410": { name:"Южная Корея",     genre:"kpop",   note:"K-pop — государственный культурный экспорт" },
+  "392": { name:"Япония",          genre:"pop",    note:"J-pop доминирует, аниме-саундтреки" },
+  "356": { name:"Индия",           genre:"regional",note:"Болливуд и региональная музыка" },
+  "156": { name:"Китай",           genre:"pop",    note:"Мандопоп и китайская поп-музыка" },
+  "566": { name:"Нигерия",         genre:"afro",   note:"Афробит — глобальный феномен из Лагоса" },
+  "710": { name:"ЮАР",             genre:"afro",   note:"Амапиано — один из главных трендов 2020-х" },
+  "404": { name:"Кения",           genre:"afro",   note:"Афробит и местные жанры" },
+  "036": { name:"Австралия",       genre:"pop",    note:"Поп с сильной инди-сценой" },
+  "554": { name:"Новая Зеландия",  genre:"pop",    note:"Поп и хип-хоп" },
+  "528": { name:"Нидерланды",      genre:"electronic",note:"Родина EDM — Tiësto, Armin, Hardwell" },
+  "056": { name:"Бельгия",         genre:"electronic",note:"Сильная электронная и техно-сцена" },
+  "040": { name:"Австрия",         genre:"pop",    note:"Австрийский поп + классическая традиция" },
+  "756": { name:"Швейцария",       genre:"pop",    note:"Многоязычный швейцарский поп" },
+  "620": { name:"Португалия",      genre:"regional",note:"Фаду — уникальный португальский жанр" },
+  "300": { name:"Греция",          genre:"pop",    note:"Греческий поп + лаика" },
+  "804": { name:"Украина",         genre:"pop",    note:"Украинский поп и электронная музыка" },
+  "792": { name:"Турция",          genre:"pop",    note:"Турецкий поп — сильнейшая региональная сцена" },
+  "818": { name:"Египет",          genre:"regional",note:"Арабская поп-музыка и шааби" },
+  "170": { name:"Колумбия",        genre:"latin",  note:"Реггетон и валленато" },
+  "604": { name:"Перу",            genre:"latin",  note:"Кумбия и латинский поп" },
+  "364": { name:"Иран",            genre:"regional",note:"Иранская поп-музыка (несмотря на ограничения)" },
+  "586": { name:"Пакистан",        genre:"regional",note:"Газели, каввали, пакистанский поп" },
+  "458": { name:"Малайзия",        genre:"pop",    note:"Малайский поп и K-pop" },
+  "360": { name:"Индонезия",       genre:"pop",    note:"Индонезийский поп и данггут" },
+  "608": { name:"Филиппины",       genre:"pop",    note:"Поп и OPM (Original Pilipino Music)" },
+  "764": { name:"Таиланд",         genre:"pop",    note:"Тайский поп и K-pop" },
+  "348": { name:"Венгрия",         genre:"pop",    note:"Венгерский поп" },
+  "642": { name:"Румыния",         genre:"pop",    note:"Румынский поп + электронная музыка" },
+  "203": { name:"Чехия",           genre:"pop",    note:"Чешский поп и рок" },
+  "703": { name:"Словакия",        genre:"pop",    note:"Словацкий поп" },
+  "100": { name:"Болгария",        genre:"pop",    note:"Болгарский поп и chalga" },
+  "372": { name:"Ирландия",        genre:"rock",   note:"Рок-традиция: U2, Thin Lizzy" },
+  "208": { name:"Дания",           genre:"pop",    note:"Датский поп и инди" },
+  "352": { name:"Исландия",        genre:"rock",   note:"Björk, Sigur Rós — рок и экспериментальная" },
+  "112": { name:"Беларусь",        genre:"pop",    note:"Белорусский поп" },
+  "862": { name:"Венесуэла",       genre:"latin",  note:"Сальса и реггетон" },
+  "858": { name:"Уругвай",         genre:"latin",  note:"Кандомбе + реггетон" },
+  "504": { name:"Марокко",         genre:"regional",note:"Гнава, рай — арабская музыкальная традиция" },
+};
+
+const isoMap = {};
+Object.keys(countryData).forEach(k => isoMap[k] = k);
+
+const svg = d3.select("#map");
+const proj = d3.geoNaturalEarth1().scale(153).translate([480, 250]);
+const path = d3.geoPath().projection(proj);
+const tooltip = document.getElementById("tooltip");
+const wrap = document.getElementById("map-wrap");
+
+let activeGenre = null;
+
+d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then(world => {
+  const countries = topojson.feature(world, world.objects.countries);
+
+  svg.selectAll("path")
+    .data(countries.features)
+    .join("path")
+    .attr("d", path)
+    .attr("stroke", "#e0e0e0")
+    .attr("stroke-width", 0.4)
+    .attr("class", d => {
+      const id = String(d.id).padStart(3,"0");
+      return countryData[id] ? "has-data" : "no-data";
+    })
+    .attr("fill", d => {
+      const id = String(d.id).padStart(3,"0");
+      const cd = countryData[id];
+      if (!cd) return "#c8c8c8";
+      return GENRES[cd.genre].color;
+    })
+    .attr("fill-opacity", 0.85)
+    .on("mousemove", function(event, d) {
+      const id = String(d.id).padStart(3,"0");
+      const cd = countryData[id];
+      if (!cd) { tooltip.style.display = "none"; return; }
+      const g = GENRES[cd.genre];
+      document.getElementById("tt-country").textContent = cd.name;
+      document.getElementById("tt-country").style.color = g.color;
+      document.getElementById("tt-genre").innerHTML = `<span style="color:${g.color}">${g.label}</span>`;
+      document.getElementById("tt-note").textContent = cd.note;
+      const r = wrap.getBoundingClientRect();
+      let tx = event.clientX - r.left + 14;
+      let ty = event.clientY - r.top - 10;
+      if (tx > r.width - 260) tx -= 270;
+      tooltip.style.left = tx + "px";
+      tooltip.style.top = ty + "px";
+      tooltip.style.display = "block";
+    })
+    .on("mouseleave", () => { tooltip.style.display = "none"; });
+
+  svg.append("path")
+    .datum(topojson.mesh(world, world.objects.countries, (a,b) => a !== b))
+    .attr("d", path).attr("fill","none")
+    .attr("stroke","#0d0b1a").attr("stroke-width",0.4);
+});
+
+const legend = document.getElementById("legend");
+Object.entries(GENRES).forEach(([key, g]) => {
+  const item = document.createElement("div");
+  item.className = "leg";
+  item.id = "leg-" + key;
+  item.innerHTML = `<div class="leg-sq" style="background:${g.color}"></div>${g.label}`;
+  item.addEventListener("click", () => {
+    if (activeGenre === key) {
+      activeGenre = null;
+      svg.selectAll(".has-data").attr("fill-opacity", 0.85);
+      document.querySelectorAll(".leg").forEach(l => l.classList.remove("inactive"));
+    } else {
+      activeGenre = key;
+      svg.selectAll(".has-data").attr("fill-opacity", d => {
+        const id = String(d.id).padStart(3,"0");
+        const cd = countryData[id];
+        return cd && cd.genre === key ? 1 : 0.08;
+      });
+      document.querySelectorAll(".leg").forEach(l => {
+        l.classList.toggle("inactive", l.id !== "leg-" + key);
+      });
+    }
+  });
+  legend.appendChild(item);
+});
+</script>
+</body>
+</html>

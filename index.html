@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Музыкальная география</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; height: 100vh; display: flex; flex-direction: column; }
+nav { background: #fff; border-bottom: 1px solid #e0e0e0; padding: 10px 24px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.nav-title { font-size: 14px; color: #888; margin-right: 8px; white-space: nowrap; }
+.nav-btn {
+  padding: 7px 16px; border-radius: 8px; border: 1px solid #ddd;
+  background: #f5f5f5; color: #444; font-size: 13px; cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.nav-btn:hover { background: #ebebeb; border-color: #ccc; }
+.nav-btn.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+iframe { flex: 1; width: 100%; border: none; display: block; }
+</style>
+</head>
+<body>
+<nav>
+  <span class="nav-title">Музыкальная география</span>
+  <button class="nav-btn active" onclick="show(this, 'metal_map.html')">Метал по странам</button>
+  <button class="nav-btn" onclick="show(this, 'genres_origin_map.html')">Где родились жанры</button>
+  <button class="nav-btn" onclick="show(this, 'genres_popularity_map.html')">Популярные жанры</button>
+</nav>
+<iframe id="frame" src="metal_map.html"></iframe>
+
+<script>
+function show(btn, src) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('frame').src = src;
+}
+</script>
+</body>
+</html>
