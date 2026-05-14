@@ -6,7 +6,7 @@
 <title>Музыкальная география</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; height: 100vh; display: flex; flex-direction: column; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; height: 100vh; height: 100dvh; display: flex; flex-direction: column; }
 nav { background: #fff; border-bottom: 1px solid #e0e0e0; padding: 10px 24px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .nav-title { font-size: 14px; color: #888; margin-right: 8px; white-space: nowrap; }
 .nav-btn {
@@ -17,7 +17,12 @@ nav { background: #fff; border-bottom: 1px solid #e0e0e0; padding: 10px 24px; di
 }
 .nav-btn:hover { background: #ebebeb; border-color: #ccc; }
 .nav-btn.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
-iframe { flex: 1; width: 100%; border: none; display: block; }
+iframe { flex: 1; min-height: 0; width: 100%; border: none; display: block; }
+@media (max-width: 540px) {
+  .nav-title { display: none; }
+  nav { padding: 8px 10px; gap: 5px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .nav-btn { font-size: 12px; padding: 5px 10px; flex-shrink: 0; }
+}
 </style>
 </head>
 <body>

@@ -2,6 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Самый популярный жанр по странам</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -26,6 +27,13 @@ svg { width: 100%; height: auto; display: block; }
 .leg-sq { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
 .leg.inactive { opacity: 0.35; }
 .source { margin-top: 14px; font-size: 11px; color: #888; }
+@media (max-width: 600px) {
+  body { padding: 12px; }
+  h1 { font-size: 17px; letter-spacing: 1px; }
+  .sub { font-size: 12px; margin-bottom: 10px; }
+  .legend { gap: 5px; margin-top: 10px; }
+  .leg { font-size: 12px; padding: 5px 9px; }
+}
 </style>
 </head>
 <body>
@@ -163,12 +171,33 @@ d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then(w
       tooltip.style.top = ty + "px";
       tooltip.style.display = "block";
     })
-    .on("mouseleave", () => { tooltip.style.display = "none"; });
+    .on("mouseleave", () => { tooltip.style.display = "none"; })
+    .on("touchstart", function(event, d) {
+      const touch = event.touches[0];
+      const id = String(d.id).padStart(3,"0");
+      const cd = countryData[id];
+      if (!cd) return;
+      const g = GENRES[cd.genre];
+      document.getElementById("tt-country").textContent = cd.name;
+      document.getElementById("tt-country").style.color = g.color;
+      document.getElementById("tt-genre").innerHTML = `<span style="color:${g.color}">${g.label}</span>`;
+      document.getElementById("tt-note").textContent = cd.note;
+      const r = wrap.getBoundingClientRect();
+      let tx = touch.clientX - r.left + 14;
+      let ty = touch.clientY - r.top - 10;
+      if (tx > r.width - 260) tx -= 270;
+      if (ty < 10) ty = 10;
+      tooltip.style.left = tx + "px";
+      tooltip.style.top = ty + "px";
+      tooltip.style.display = "block";
+      clearTimeout(tooltip._t);
+      tooltip._t = setTimeout(() => { tooltip.style.display = "none"; }, 2500);
+    }, {passive: true});
 
   svg.append("path")
     .datum(topojson.mesh(world, world.objects.countries, (a,b) => a !== b))
     .attr("d", path).attr("fill","none")
-    .attr("stroke","#0d0b1a").attr("stroke-width",0.4);
+    .attr("stroke","#e0e0e0").attr("stroke-width",0.4);
 });
 
 const legend = document.getElementById("legend");
